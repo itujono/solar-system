@@ -1,5 +1,6 @@
 import { OrbitControls, Stars } from '@react-three/drei';
 import { Canvas, useThree } from '@react-three/fiber';
+import type { ThreeEvent } from '@react-three/fiber';
 import { Suspense, useState, useRef } from 'react';
 import { Sun } from './Sun';
 import { Planet } from './Planet';
@@ -9,7 +10,7 @@ import { ProjectInfoPanel } from '../ProjectInfoPanel';
 import * as THREE from 'three';
 import { AnimatePresence } from 'motion/react';
 
-// Helper component to get screen position
+// Refactored helper component to get screen position
 function PlanetWithPosition({
   project,
   index,
@@ -29,49 +30,82 @@ function PlanetWithPosition({
     return [Math.cos(angle) * radius, 0, Math.sin(angle) * radius];
   };
 
-  const handleClick = () => {
+  const handleClick = (event: ThreeEvent<MouseEvent>) => {
+    event.stopPropagation();
     if (meshRef.current) {
-      const vector = new THREE.Vector3();
-      meshRef.current.getWorldPosition(vector);
-      vector.project(camera);
+      // Get the world position of the planet
+      const worldPosition = new THREE.Vector3();
+      meshRef.current.getWorldPosition(worldPosition);
 
-      const x = (vector.x * 0.5 + 0.5) * size.width;
-      const y = (-(vector.y * 0.5) + 0.5) * size.height;
+      // Get the vector from camera to planet
+      const cameraPosition = new THREE.Vector3();
+      camera.getWorldPosition(cameraPosition);
+      const directionToCamera = worldPosition.clone().sub(cameraPosition);
 
-      onPlanetClick(project.id, { x, y });
+      // Check if planet is behind the camera
+      const isBehindCamera = directionToCamera.dot(camera.getWorldDirection(new THREE.Vector3())) < 0;
+
+      if (isBehindCamera) {
+        // If planet is behind camera, use a position in front of the camera
+        const viewCenter = {
+          x: size.width / 2,
+          y: size.height / 2,
+        };
+        onPlanetClick(project.id, viewCenter);
+        return;
+      }
+
+      // Project world position to screen space
+      const screenPosition = worldPosition.clone().project(camera);
+
+      // Convert normalized coordinates to pixel coordinates
+      const x = (screenPosition.x * 0.5 + 0.5) * size.width;
+      const y = (-(screenPosition.y * 0.5) + 0.5) * size.height;
+
+      // Check if the position is within reasonable bounds
+      if (isFinite(x) && isFinite(y) && x >= 0 && x <= size.width && y >= 0 && y <= size.height) {
+        onPlanetClick(project.id, { x, y });
+      } else {
+        // Fallback to center if coordinates are invalid
+        const viewCenter = {
+          x: size.width / 2,
+          y: size.height / 2,
+        };
+        onPlanetClick(project.id, viewCenter);
+      }
     }
   };
 
   return (
-    <Planet
-      ref={meshRef}
-      position={getInitialPosition(index, totalProjects, project.planetProps.orbitRadius)}
-      onClick={handleClick}
-      {...project.planetProps}
-    />
+    <group onClick={handleClick}>
+      <Planet
+        ref={meshRef}
+        position={getInitialPosition(index, totalProjects, project.planetProps.orbitRadius)}
+        {...project.planetProps}
+      />
+    </group>
   );
 }
 
 export function Scene() {
-  const [selectedProject, setSelectedProject] = useState<string | null>(null);
-  const [panelPosition, setPanelPosition] = useState<{ x: number; y: number } | null>(null);
+  // Change state to hold multiple selected panels
+  const [selectedPanels, setSelectedPanels] = useState<Array<{ id: string; position: { x: number; y: number } }>>([]);
 
   const handlePlanetClick = (projectId: string, position: { x: number; y: number }) => {
-    if (projectId === selectedProject) {
-      setSelectedProject(null);
-      setPanelPosition(null);
-    } else {
-      setSelectedProject(projectId);
-      setPanelPosition(position);
-    }
+    setSelectedPanels((prev) => {
+      const exists = prev.find((panel) => panel.id === projectId);
+      if (exists) {
+        // Toggle off
+        return prev.filter((panel) => panel.id !== projectId);
+      } else {
+        return [...prev, { id: projectId, position }];
+      }
+    });
   };
 
-  const handlePanelClose = () => {
-    setSelectedProject(null);
-    setPanelPosition(null);
+  const handlePanelClose = (projectId: string) => {
+    setSelectedPanels((prev) => prev.filter((panel) => panel.id !== projectId));
   };
-
-  const selectedProjectData = selectedProject ? projects.find((p) => p.id === selectedProject) : null;
 
   return (
     <div className="h-screen w-screen bg-black relative">
@@ -115,32 +149,34 @@ export function Scene() {
             enableZoom={true}
             enablePan={true}
             enableRotate={true}
-            minPolarAngle={Math.PI / 4}
-            maxPolarAngle={Math.PI / 2}
+            minPolarAngle={Math.PI / 4} // 45 degrees from top
+            maxPolarAngle={(Math.PI * 3) / 4} // 135 degrees from top
             minDistance={15}
-            maxDistance={35}
+            maxDistance={50} // Increased max distance
             enableDamping={true}
             dampingFactor={0.05}
             rotateSpeed={0.5}
-            zoomSpeed={0.2}
-            panSpeed={0.5}
+            zoomSpeed={0.5} // Increased zoom speed
+            panSpeed={0.8} // Increased pan speed
             screenSpacePanning={true}
-            maxAzimuthAngle={Math.PI / 2}
-            minAzimuthAngle={-Math.PI / 2}
+            // Removed azimuth angle constraints to allow full rotation
           />
         </Suspense>
       </Canvas>
 
-      {/* Project Info Panel */}
+      {/* Render all selected info panels */}
       <AnimatePresence mode="wait">
-        {selectedProjectData && panelPosition && (
-          <ProjectInfoPanel
-            key={selectedProjectData.id}
-            project={selectedProjectData}
-            position={panelPosition}
-            onClose={handlePanelClose}
-          />
-        )}
+        {selectedPanels.map((panel) => {
+          const projectData = projects.find((p) => p.id === panel.id);
+          if (!projectData) return null;
+          return (
+            <ProjectInfoPanel
+              key={projectData.id}
+              project={projectData}
+              onClose={() => handlePanelClose(projectData.id)}
+            />
+          );
+        })}
       </AnimatePresence>
     </div>
   );
