@@ -1,7 +1,8 @@
-import { useRef, useState, forwardRef } from 'react';
+import { useRef, useState, forwardRef, useEffect, useImperativeHandle } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture, Line } from '@react-three/drei';
 import * as THREE from 'three';
+import type { ThreeEvent } from '@react-three/fiber';
 
 interface PlanetProps {
   position: [number, number, number];
@@ -10,7 +11,7 @@ interface PlanetProps {
   rotationSpeed: number;
   size: number;
   atmosphereColor?: string;
-  onClick?: (event: { stopPropagation: () => void }) => void;
+  onClick?: (event: ThreeEvent<MouseEvent>) => void;
   textureSet?: {
     map?: string;
     normalMap?: string;
@@ -18,6 +19,7 @@ interface PlanetProps {
     roughnessMap?: string;
     specularMap?: string;
   };
+  isSelected?: boolean;
 }
 
 // OrbitPath: renders the orbit path of the planet
@@ -69,17 +71,19 @@ const PlanetBody = forwardRef<
 // PlanetHitbox: an invisible hitbox that exclusively captures pointer events
 const PlanetHitbox = ({
   size,
+  onClick,
   onPointerUp,
   onPointerOver,
   onPointerOut,
 }: {
   size: number;
+  onClick?: (e: ThreeEvent<MouseEvent>) => void;
   onPointerUp?: (e: any) => void;
   onPointerOver: (e: any) => void;
   onPointerOut: (e: any) => void;
 }) => {
   return (
-    <mesh onPointerUp={onPointerUp} onPointerOver={onPointerOver} onPointerOut={onPointerOut} renderOrder={999}>
+    <mesh onClick={onClick} onPointerOver={onPointerOver} onPointerOut={onPointerOut} renderOrder={999}>
       <sphereGeometry args={[size * 1.3, 32, 32]} />
       <meshBasicMaterial color="black" opacity={0} transparent depthTest={false} />
     </mesh>
@@ -114,13 +118,34 @@ const Atmosphere = ({
   );
 };
 
-export const Planet = forwardRef<THREE.Mesh, PlanetProps>(function Planet(
-  { position, orbitRadius, orbitSpeed, rotationSpeed, size, atmosphereColor, onClick, textureSet },
-  ref,
-) {
-  const planetRef = useRef<THREE.Group>(null);
+export const Planet = forwardRef<THREE.Group, PlanetProps>(function Planet(props, forwardedRef) {
+  const {
+    position,
+    orbitRadius,
+    orbitSpeed,
+    rotationSpeed,
+    size,
+    atmosphereColor,
+    onClick,
+    textureSet,
+    isSelected = false,
+  } = props;
+  const localPlanetRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
+
+  // New ref to store the orbit position when the planet becomes selected
+  const storedOrbitPosition = useRef<THREE.Vector3 | null>(null);
+
+  // When selection state changes, store or reset the orbit position
+  useEffect(() => {
+    if (isSelected && localPlanetRef.current && !storedOrbitPosition.current) {
+      storedOrbitPosition.current = localPlanetRef.current.position.clone();
+    }
+    if (!isSelected) {
+      storedOrbitPosition.current = null;
+    }
+  }, [isSelected]);
 
   // Load textures if provided
   const textures = textureSet?.map
@@ -143,11 +168,22 @@ export const Planet = forwardRef<THREE.Mesh, PlanetProps>(function Planet(
   }
 
   useFrame((state) => {
-    if (planetRef.current && bodyRef.current) {
+    if (localPlanetRef.current && bodyRef.current) {
       const initialAngle = Math.atan2(position[2], position[0]);
       const angle = state.clock.elapsedTime * orbitSpeed + initialAngle;
-      planetRef.current.position.x = Math.cos(angle) * orbitRadius;
-      planetRef.current.position.z = Math.sin(angle) * orbitRadius;
+      // Calculate the orbit position based on current time
+      const orbitPosition = new THREE.Vector3(Math.cos(angle) * orbitRadius, 0, Math.sin(angle) * orbitRadius);
+
+      if (isSelected && storedOrbitPosition.current) {
+        // Define an offset to simulate flying through the panel side
+        const offset = new THREE.Vector3(5, 0, 0); // Adjust this value as needed
+        const targetPosition = storedOrbitPosition.current.clone().add(offset);
+        localPlanetRef.current.position.lerp(targetPosition, 0.2);
+      } else {
+        // Smoothly return to or update the orbit position
+        localPlanetRef.current.position.lerp(orbitPosition, 0.1);
+      }
+
       bodyRef.current.rotation.y += rotationSpeed;
       const targetScale = hovered ? 1.1 : 1;
       bodyRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
@@ -164,12 +200,14 @@ export const Planet = forwardRef<THREE.Mesh, PlanetProps>(function Planet(
     document.body.style.cursor = 'auto';
   };
 
+  useImperativeHandle(forwardedRef, () => localPlanetRef.current!);
+
   return (
     <>
       <OrbitPath radius={orbitRadius} color={atmosphereColor || '#ffffff'} />
-      <group ref={planetRef} position={position}>
+      <group ref={localPlanetRef} position={position}>
         <PlanetBody
-          ref={ref || bodyRef}
+          ref={bodyRef}
           size={size}
           textures={textures}
           hovered={hovered}
@@ -178,6 +216,7 @@ export const Planet = forwardRef<THREE.Mesh, PlanetProps>(function Planet(
         />
         <PlanetHitbox
           size={size}
+          onClick={onClick}
           onPointerUp={onClick}
           onPointerOver={handlePointerOver}
           onPointerOut={handlePointerOut}

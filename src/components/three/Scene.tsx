@@ -16,13 +16,15 @@ function PlanetWithPosition({
   index,
   totalProjects,
   onPlanetClick,
+  isSelected,
 }: {
   project: Project;
   index: number;
   totalProjects: number;
   onPlanetClick: (id: string, position: { x: number; y: number }) => void;
+  isSelected: boolean;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef = useRef<THREE.Group>(null);
   const { camera, size } = useThree();
 
   const getInitialPosition = (idx: number, total: number, radius: number): [number, number, number] => {
@@ -77,11 +79,13 @@ function PlanetWithPosition({
   };
 
   return (
-    <group onClick={handleClick}>
+    <group>
       <Planet
         ref={meshRef}
         position={getInitialPosition(index, totalProjects, project.planetProps.orbitRadius)}
         {...project.planetProps}
+        isSelected={isSelected}
+        onClick={handleClick}
       />
     </group>
   );
@@ -141,6 +145,7 @@ export function Scene() {
               index={index}
               totalProjects={projects.length}
               onPlanetClick={handlePlanetClick}
+              isSelected={selectedPanels.some((panel) => panel.id === project.id)}
             />
           ))}
 
