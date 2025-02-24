@@ -10,20 +10,15 @@ import { ProjectInfoPanel } from '../ProjectInfoPanel';
 import * as THREE from 'three';
 import { AnimatePresence } from 'motion/react';
 
-// Refactored helper component to get screen position
-function PlanetWithPosition({
-  project,
-  index,
-  totalProjects,
-  onPlanetClick,
-  isSelected,
-}: {
+interface PlanetWithPositionProps {
   project: Project;
   index: number;
   totalProjects: number;
   onPlanetClick: (id: string, position: { x: number; y: number }) => void;
   isSelected: boolean;
-}) {
+}
+
+function PlanetWithPosition({ project, index, totalProjects, onPlanetClick, isSelected }: PlanetWithPositionProps) {
   const meshRef = useRef<THREE.Group>(null);
   const { camera, size } = useThree();
 
@@ -92,14 +87,12 @@ function PlanetWithPosition({
 }
 
 export function Scene() {
-  // Change state to hold multiple selected panels
   const [selectedPanels, setSelectedPanels] = useState<Array<{ id: string; position: { x: number; y: number } }>>([]);
 
   const handlePlanetClick = (projectId: string, position: { x: number; y: number }) => {
     setSelectedPanels((prev) => {
       const exists = prev.find((panel) => panel.id === projectId);
       if (exists) {
-        // Toggle off
         return prev.filter((panel) => panel.id !== projectId);
       } else {
         return [...prev, { id: projectId, position }];
@@ -112,13 +105,14 @@ export function Scene() {
   };
 
   return (
-    <div className="h-screen w-screen bg-black relative">
+    <div className="h-screen w-screen bg-black relative overflow-hidden">
       <Canvas
+        className="z-[1001]"
         camera={{
           position: [0, 20, 25],
           fov: 45,
           near: 0.1,
-          far: 1000,
+          far: 2000,
         }}
       >
         <color attach="background" args={['#000010']} />
@@ -128,11 +122,14 @@ export function Scene() {
           <Stars radius={300} depth={60} count={10000} factor={7} saturation={0} fade speed={0.5} />
 
           {/* Enhanced Lighting Setup */}
-          <ambientLight intensity={0.2} />
+          <ambientLight intensity={0.5} />
           {/* Main sun light */}
-          <pointLight position={[0, 0, 0]} intensity={3} distance={100} decay={2} />
-          {/* Additional rim light for better planet visibility */}
-          <directionalLight position={[50, 30, -20]} intensity={0.3} color="#ffffff" />
+          <pointLight position={[0, 0, 0]} intensity={5} distance={200} decay={1.5} />
+          {/* Additional rim lights for better planet visibility */}
+          <directionalLight position={[50, 30, -20]} intensity={1} color="#ffffff" />
+          <directionalLight position={[-50, -30, 20]} intensity={0.5} color="#ffffff" />
+          {/* Soft fill light from the front */}
+          <pointLight position={[0, 10, 30]} intensity={0.5} distance={100} decay={2} color="#ffffff" />
 
           {/* Scene Content */}
           <Sun />
@@ -150,52 +147,17 @@ export function Scene() {
           ))}
 
           {/* Controls */}
-          <OrbitControls
-            enableZoom={true}
-            enablePan={true}
-            enableRotate={true}
-            minPolarAngle={Math.PI / 4} // 45 degrees from top
-            maxPolarAngle={(Math.PI * 3) / 4} // 135 degrees from top
-            minDistance={15}
-            maxDistance={50} // Increased max distance
-            enableDamping={true}
-            dampingFactor={0.05}
-            rotateSpeed={0.5}
-            zoomSpeed={0.5} // Increased zoom speed
-            panSpeed={0.8} // Increased pan speed
-            screenSpacePanning={true}
-            // Removed azimuth angle constraints to allow full rotation
-          />
+          <OrbitControls enableZoom={false} enablePan={false} minPolarAngle={Math.PI / 4} maxPolarAngle={Math.PI / 2} />
         </Suspense>
       </Canvas>
 
-      {/* Render all selected info panels */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {selectedPanels.map((panel) => {
-          const projectData = projects.find((p) => p.id === panel.id);
-          if (!projectData) return null;
-          return (
-            <ProjectInfoPanel
-              key={projectData.id}
-              project={projectData}
-              onClose={() => handlePanelClose(projectData.id)}
-            />
-          );
+          const project = projects.find((p) => p.id === panel.id);
+          if (!project) return null;
+          return <ProjectInfoPanel key={panel.id} project={project} onClose={() => handlePanelClose(panel.id)} />;
         })}
       </AnimatePresence>
     </div>
   );
-}
-
-// Performance optimization components
-function AdaptivePixelRatio() {
-  return <AdaptiveEvents />;
-}
-
-function AdaptiveDpr() {
-  return <AdaptiveEvents />;
-}
-
-function AdaptiveEvents() {
-  return null;
 }
