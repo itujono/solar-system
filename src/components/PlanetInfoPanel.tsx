@@ -84,7 +84,20 @@ export function PlanetInfoPanel({ planet, onClose }: PlanetInfoPanelProps) {
 
           <section className="relative mb-4 lg:pr-32">
             {/* <div className="absolute -left-2 top-1/2 w-1 h-6 bg-cyan-500 -translate-y-1/2" /> */}
-            <h2 className="text-lg lg:text-2xl font-bold pl-2 mb-1">///// {planet.name}</h2>
+            <h2 className="text-lg lg:text-2xl font-bold pl-2 mb-1 relative">
+              <span className="relative inline-block">
+                <span className="relative z-10 mix-blend-screen">///// {planet.name}</span>
+                <span className="absolute inset-0 z-0 animate-glitch-1 text-red-500/90 mix-blend-screen">
+                  ///// {planet.name}
+                </span>
+                <span className="absolute inset-0 z-0 animate-glitch-2 text-blue-500/90 mix-blend-screen">
+                  ///// {planet.name}
+                </span>
+                <span className="absolute inset-0 z-0 animate-glitch-3 text-green-500/90 mix-blend-screen">
+                  ///// {planet.name}
+                </span>
+              </span>
+            </h2>
             <p className="text-xs lg:text-sm text-gray-400 pl-2 italic">{planet.trivia}</p>
           </section>
 
