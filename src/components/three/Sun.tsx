@@ -142,13 +142,11 @@ export function Sun() {
           />
         </mesh>
 
-        {/* Strong point light at the center */}
         <pointLight intensity={3} distance={100} decay={2} color="#FDB813" />
 
         {/* Additional ambient glow */}
         <pointLight intensity={2} distance={15} decay={2} color="#FF8C00" />
 
-        {/* Solar flares - positioned more naturally */}
         <group>
           <SolarFlare
             position={[0, 4.1, 0] as [number, number, number]}

@@ -88,7 +88,6 @@ export function Scene() {
       if (exists) {
         return prev.filter((panel) => panel.id !== projectId);
       } else {
-        // Always position panel at screen center
         return [
           ...prev,
           {
@@ -126,7 +125,6 @@ export function Scene() {
           <pointLight position={[0, 0, 0]} intensity={5} distance={200} decay={1.5} />
           <directionalLight position={[50, 30, -20]} intensity={1} color="#ffffff" />
           <directionalLight position={[-50, -30, 20]} intensity={0.5} color="#ffffff" />
-          {/* Soft fill light from the front */}
           <pointLight position={[0, 10, 30]} intensity={0.5} distance={100} decay={2} color="#ffffff" />
 
           <Sun />
@@ -142,7 +140,6 @@ export function Scene() {
             />
           ))}
 
-          {/* Adjusted camera constraints */}
           <OrbitControls
             enableZoom={false}
             enablePan={true}
