@@ -101,7 +101,7 @@ export function Sun() {
       <group>
         {/* Main sun sphere with displacement */}
         <mesh ref={sunRef}>
-          <sphereGeometry args={[2.5, 128, 128]} />
+          <sphereGeometry args={[4, 128, 128]} />
           <meshPhysicalMaterial
             map={textures.map}
             displacementMap={textures.displacementMap}
@@ -118,7 +118,7 @@ export function Sun() {
 
         {/* Inner corona glow */}
         <mesh ref={coronaRef}>
-          <sphereGeometry args={[2.7, 64, 64]} />
+          <sphereGeometry args={[4.3, 64, 64]} />
           <meshBasicMaterial
             color="#FDB813"
             transparent
@@ -131,7 +131,7 @@ export function Sun() {
 
         {/* Outer corona glow */}
         <mesh>
-          <sphereGeometry args={[3.2, 64, 64]} />
+          <sphereGeometry args={[5, 64, 64]} />
           <meshBasicMaterial
             color="#FF8C00"
             transparent
@@ -151,15 +151,15 @@ export function Sun() {
         {/* Solar flares - positioned more naturally */}
         <group>
           <SolarFlare
-            position={[0, 2.6, 0] as [number, number, number]}
+            position={[0, 4.1, 0] as [number, number, number]}
             rotation={[0, 0, 0] as [number, number, number]}
           />
           <SolarFlare
-            position={[2.3, 0.8, 0] as [number, number, number]}
+            position={[3.8, 1.3, 0] as [number, number, number]}
             rotation={[0, 0, -Math.PI / 4] as [number, number, number]}
           />
           <SolarFlare
-            position={[-2.3, -0.8, 0] as [number, number, number]}
+            position={[-3.8, -1.3, 0] as [number, number, number]}
             rotation={[0, 0, Math.PI / 4] as [number, number, number]}
           />
         </group>

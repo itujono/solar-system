@@ -3,8 +3,10 @@ import { useFrame } from '@react-three/fiber';
 import { useTexture, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import type { ThreeEvent } from '@react-three/fiber';
+import { SaturnRing } from './SaturnRing';
 
 interface PlanetProps {
+  id: string;
   position: [number, number, number];
   orbitRadius: number;
   orbitSpeed: number;
@@ -28,13 +30,28 @@ interface OrbitPathProps {
 }
 
 function OrbitPath({ radius, color }: OrbitPathProps) {
-  const points = Array.from({ length: 129 }, (_, i) => {
-    const theta = (i / 128) * Math.PI * 2;
+  const points = Array.from({ length: 180 }, (_, i) => {
+    const theta = (i / 179) * Math.PI * 2;
     return [Math.cos(theta) * radius, 0, Math.sin(theta) * radius] as [number, number, number];
   });
 
+  const baseOpacity = 0.15;
+  const radiusBoost = Math.min(radius / 40, 1);
+  const adjustedOpacity = baseOpacity + radiusBoost * 0.1;
+
   return (
-    <Line points={points} color={color} transparent opacity={0.2} lineWidth={1} blending={THREE.AdditiveBlending} />
+    <Line
+      points={points}
+      color={color}
+      transparent
+      opacity={adjustedOpacity}
+      lineWidth={1.5}
+      blending={THREE.AdditiveBlending}
+      dashed
+      dashScale={radius * 1.2}
+      dashSize={3}
+      gapSize={2}
+    />
   );
 }
 
@@ -115,6 +132,7 @@ const Atmosphere = ({ size, atmosphereColor, hovered }: AtmosphereProps) => {
 
 export const Planet = forwardRef<THREE.Group, PlanetProps>(function Planet(props, forwardedRef) {
   const {
+    id,
     position,
     orbitRadius,
     orbitSpeed,
@@ -209,6 +227,7 @@ export const Planet = forwardRef<THREE.Group, PlanetProps>(function Planet(props
         />
         <PlanetHitbox size={size} onPointerOver={handlePointerOver} onPointerOut={handlePointerOut} />
         {atmosphereColor && <Atmosphere size={size} atmosphereColor={atmosphereColor} hovered={hovered} />}
+        {id === 'saturn' && <SaturnRing planetSize={size} hovered={hovered} />}
         <pointLight intensity={hovered ? 1.2 : 0.8} distance={15} color={atmosphereColor || '#ffffff'} decay={2} />
       </group>
     </>
