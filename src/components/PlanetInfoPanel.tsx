@@ -21,7 +21,7 @@ const springTransition = {
 };
 
 function PreviewPlanet({ planetProps, id }: { planetProps: PlanetType['planetProps']; id: string }) {
-  const size = id === 'jupiter' || id === 'saturn' ? 1.2 : 1;
+  const size = id === 'jupiter' || id === 'saturn' ? 0.7 : 1;
   return <Planet id={id} position={[0, 0, 0]} {...planetProps} size={size} orbitRadius={0} orbitSpeed={0} />;
 }
 
@@ -60,7 +60,7 @@ export function PlanetInfoPanel({ planet, onClose }: PlanetInfoPanelProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                className="absolute bottom-0 right-0 size-fit -z-10 isolate"
+                className="absolute bottom-0 right-0 size-full -z-10 isolate"
               >
                 <Canvas camera={{ position: [0, 0, 5], fov: 45 }} className="w-full h-full pointer-events-none">
                   <Suspense fallback={null}>
@@ -74,7 +74,7 @@ export function PlanetInfoPanel({ planet, onClose }: PlanetInfoPanelProps) {
                     enableZoom={false}
                     enablePan={false}
                     autoRotate
-                    autoRotateSpeed={1}
+                    autoRotateSpeed={0.0001}
                     enableDamping={false}
                   />
                 </Canvas>
@@ -82,10 +82,10 @@ export function PlanetInfoPanel({ planet, onClose }: PlanetInfoPanelProps) {
             )}
           </AnimatePresence>
 
-          <section className="relative mb-4 pr-32">
-            <div className="absolute -left-2 top-1/2 w-1 h-6 bg-cyan-500 -translate-y-1/2" />
-            <h2 className="text-2xl font-bold pl-2 mb-1">///// {planet.name}</h2>
-            <p className="text-sm text-gray-400 pl-2 italic">{planet.trivia}</p>
+          <section className="relative mb-4 lg:pr-32">
+            {/* <div className="absolute -left-2 top-1/2 w-1 h-6 bg-cyan-500 -translate-y-1/2" /> */}
+            <h2 className="text-lg lg:text-2xl font-bold pl-2 mb-1">///// {planet.name}</h2>
+            <p className="text-xs lg:text-sm text-gray-400 pl-2 italic">{planet.trivia}</p>
           </section>
 
           <p className="text-gray-300 mb-6 pl-2">{planet.description}</p>
@@ -156,7 +156,7 @@ export function PlanetInfoPanel({ planet, onClose }: PlanetInfoPanelProps) {
             </div>
           </section>
 
-          <section className="flex gap-3 pl-2 mt-12">
+          <section className="flex gap-3 pl-2 mt-4 lg:mt-12">
             {planet.links?.nasa && (
               <a
                 href={planet.links?.nasa}
